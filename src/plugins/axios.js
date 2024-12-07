@@ -2,7 +2,7 @@ import axios from "axios";
 import { useAuthStore } from "@/store/authStore";
 
 const apiClient = axios.create({
-  // Gantilah baseURL sesuai dengan URL backend Anda di Vercel
+  // Pastikan baseURL sesuai dengan URL backend di Vercel
   baseURL: "https://inventory-management-backend-main.vercel.app/api", // URL backend di Vercel
   headers: {
     "Content-Type": "application/json",
@@ -24,6 +24,7 @@ apiClient.interceptors.request.use(
     return config;
   },
   (error) => {
+    console.error("Request error:", error);
     return Promise.reject(error); // Jika terjadi error, lanjutkan dengan promise reject
   }
 );
@@ -31,16 +32,28 @@ apiClient.interceptors.request.use(
 // Interceptor untuk response
 apiClient.interceptors.response.use(
   (response) => {
-    return response; // Jika response berhasil, kembalikan response tersebut
+    // Response berhasil, kembalikan response tersebut
+    return response;
   },
   (error) => {
     if (error.response) {
       // Jika ada response error dari server
       console.error("Error during API request:", error.response.data);
-      // Misalnya, jika status error 401 (Unauthorized), Anda bisa mengarahkan pengguna untuk login ulang
-      if (error.response.status === 401) {
-        console.warn("Unauthorized, redirecting to login...");
-        // Tambahkan logic untuk redirect atau logout jika perlu
+
+      // Tangani berbagai status error
+      switch (error.response.status) {
+        case 401:
+          console.warn("Unauthorized, redirecting to login...");
+          // Tambahkan logic untuk redirect atau logout jika perlu
+          break;
+        case 404:
+          console.error("Not Found: The resource was not found on the server.");
+          break;
+        case 500:
+          console.error("Server error: Something went wrong on the server.");
+          break;
+        default:
+          console.error("An unexpected error occurred.");
       }
     } else if (error.request) {
       // Jika request tidak mendapatkan response
@@ -49,7 +62,7 @@ apiClient.interceptors.response.use(
       // Jika ada error dalam setting request
       console.error("Error in setting up the request:", error.message);
     }
-    return Promise.reject(error); // Return error
+    return Promise.reject(error); // Return error untuk ditangani di bagian lain
   }
 );
 
